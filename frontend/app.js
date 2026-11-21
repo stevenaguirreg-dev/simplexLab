@@ -1,4 +1,4 @@
-/* SimplexOpt: estado, vistas y acciones de la interfaz. */
+//* SimplexOpt: estado, vistas y acciones de la interfaz. */
 const REL_SIGUIENTE = { '<=': '>=', '>=': '=', '=': '<=' };
 const REL_TEXTO = { '<=': '≤', '>=': '≥', '=': '=' };
 const METODOS = { gran_m: 'Gran M', revisado: 'Revisado' };
@@ -367,7 +367,7 @@ function tablaTablero(inst, paso) {
   const sale = paso && paso.saliente ? paso.saliente.fila : -1;
   const ce = (j) => (j === ent ? 'c-ent' : '');
   const cab = `<tr><th class="centro">Ec</th><th class="vb">VB</th><th>Z</th>${inst.columnas.slice(0, nV).map((c, j) => `<th class="${ce(j)}">${subind(c)}</th>`).join('')}<th>LD</th>${paso ? '<th>Razón</th>' : ''}</tr>`;
-  const fz = `<tr class="fila-z"><td class="centro">0</td><td class="vb">${tx(inst.etiqueta_z)}</td><td>1</td>${inst.fila_z.slice(0, nV).map((v, j) => `<td class="${ce(j)} ${String(v).startsWith('-') ? 'celda-neg' : ''}">${tx(v)}</td>`).join('')}<td>${tx(inst.fila_z[nV])}</td>${paso ? '<td></td>' : ''}</tr>`;
+  const fz = `<tr class="fila-z"><td class="centro">0</td><td class="vb">${tx(inst.etiqueta_z)}</td><td>1</td>${inst.fila_z.slice(0, nV).map((v, j) => `<td class="${ce(j)} ${String(v).startsWith('-') ? 'celda-neg' : ''}">${tx(v)}</td>`).join('')}<td>${tx(inst.fila_z[nV])}</td>${paso ? '<td>—</td>' : ''}</tr>`;
   const filas = inst.filas.map((f, i) => {
     const rz = paso ? paso.razones[i].razon : null;
     return `<tr class="${i === sale ? 'f-sale' : ''}"><td class="centro">${i + 1}</td><td class="vb">${subind(f.variable_basica)}</td><td>0</td>
@@ -377,33 +377,24 @@ function tablaTablero(inst, paso) {
   return `<div class="tabla-envoltorio"><table class="tablero"><thead>${cab}</thead><tbody>${fz}${filas}</tbody></table></div>`;
 }
 
-function bloqueRevisado(inst, paso) {
+function detalleRevisado(inst, paso) {
   const m = inst.base.length;
   const R = Array.from({ length: m }, (_, i) => `<th>R${i + 1}</th>`).join('');
   const sale = paso && paso.saliente ? paso.saliente.fila : -1;
   const tabla = (cab, filas) => `<div class="tabla-envoltorio"><table class="tablero"><thead><tr>${cab}</tr></thead><tbody>${filas}</tbody></table></div>`;
   const binv = tabla(`<th class="vb">B⁻¹</th>${R}`, inst.B_inv.map((fila, i) => `<tr class="${i === sale ? 'f-sale' : ''}"><td class="vb">${subind(inst.base[i])}</td>${fila.map((v) => `<td>${tx(v)}</td>`).join('')}</tr>`).join(''));
-  const xb = tabla('<th class="vb">VB</th><th>X<sub>B</sub></th>', inst.base.map((b, i) => `<tr class="${i === sale ? 'f-sale' : ''}"><td class="vb">${subind(b)}</td><td>${tx(inst.xb[i])}</td></tr>`).join(''));
   const y = tabla(R, `<tr>${inst.y.map((v) => `<td>${tx(v)}</td>`).join('')}</tr>`);
-  const entNombre = paso ? paso.entrante.nombre : null;
-  const costos = tabla(inst.costos_reducidos.map((c) => `<th class="${c.variable === entNombre ? 'c-ent' : ''}">${subind(c.variable)}</th>`).join(''),
-    `<tr>${inst.costos_reducidos.map((c) => `<td class="${c.variable === entNombre ? 'c-ent' : ''} ${String(c.valor).startsWith('-') ? 'celda-neg' : ''}">${c.basica ? '0' : tx(c.valor)}</td>`).join('')}</tr>`);
-  let razones = '';
-  if (paso) {
-    razones = `<div><p class="subtitulo">Columna entrante ${subind(paso.entrante.nombre)} (B⁻¹·P) y prueba de la razón mínima</p>${tabla('<th class="vb">VB</th><th>Columna</th><th>X<sub>B</sub></th><th>Razón</th>',
-      paso.razones.map((q, i) => `<tr class="${i === sale ? 'f-sale' : ''}"><td class="vb">${subind(q.variable_basica)}</td><td class="${i === sale ? 'pivote' : ''}">${tx(q.columna)}</td><td>${tx(q.xb)}</td><td class="${i === sale ? 'razon-min' : ''}">${q.razon === null ? '—' : tx(q.razon)}</td></tr>`).join(''))}</div>`;
-  }
-  return `<div class="bloque-revisado">
+  return `<details class="detalle-revisado"><summary>Matrices del método revisado (B⁻¹ y multiplicadores y)</summary>
+    <div class="bloque-revisado">
       <div><p class="subtitulo">Matriz B⁻¹ (filas: variables básicas)</p>${binv}</div>
-      <div><p class="subtitulo">Variables básicas y valores</p>${xb}</div>
       <div><p class="subtitulo">Multiplicadores y = C<sub>B</sub>·B⁻¹</p>${y}</div>
     </div>
-    <p class="subtitulo">Costos reducidos (d<sub>j</sub> = C<sub>B</sub>·B⁻¹·P<sub>j</sub> − C<sub>j</sub>)</p>${costos}
-    <p class="subtitulo">Valor actual: ${tx(inst.etiqueta_z)} = ${tx(inst.z)}</p>${razones}`;
+    <p class="nota">Cada fila del tablero se obtiene como B⁻¹·A y el lado derecho como X<sub>B</sub> = B⁻¹·b. Los costos reducidos son d<sub>j</sub> = C<sub>B</sub>·B⁻¹·P<sub>j</sub> − C<sub>j</sub>.</p>
+  </details>`;
 }
 
 function tarjetaIteracion(titulo, etiqueta, inst, paso) {
-  const cuerpo = inst.tipo === 'tablero' ? tablaTablero(inst, paso) : bloqueRevisado(inst, paso);
+  const cuerpo = tablaTablero(inst, paso) + (inst.tipo === 'revisado' ? detalleRevisado(inst, paso) : '');
   return `<section class="iteracion"><div class="iteracion-cab"><h3>${titulo}</h3>${etiqueta ? `<span class="chip">${etiqueta}</span>` : ''}</div>${cuerpo}${paso ? decisiones(paso) : ''}</section>`;
 }
 

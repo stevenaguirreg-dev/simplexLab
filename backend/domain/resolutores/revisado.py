@@ -59,16 +59,25 @@ class ResolutorRevisado(ResolutorSimplex):
     def _instantanea(self):
         f = self.forma
         d = self._costos_reducidos()
+        xb = self._xb()
+        # Tablero equivalente: cada fila i es (B^-1 A)_i | X_B_i. Se calcula con B^-1, sin pivotear el tablero.
+        columnas = [self._columna(j) for j in range(f.N)]
         return {
             "tipo": "revisado",
+            "columnas": list(f.nombres) + ["LD"],
             "etiqueta_z": f.etiqueta_z,
+            "fila_z": [GranM(0) if j in self.base else d[j] for j in range(f.N)] + [self._valor_z()],
+            "filas": [
+                {
+                    "variable_basica": f.nombres[self.base[i]],
+                    "valores": [columnas[j][i] for j in range(f.N)] + [xb[i]],
+                }
+                for i in range(f.m)
+            ],
+            # Datos propios del método revisado (se muestran como detalle complementario)
             "base": [f.nombres[j] for j in self.base],
             "B_inv": [list(fila) for fila in self.B_inv],
-            "xb": self._xb(),
+            "xb": xb,
             "y": self._y(),
             "z": self._valor_z(),
-            "costos_reducidos": [
-                {"variable": f.nombres[j], "valor": d[j], "basica": j in self.base, "artificial": f.es_artificial(j)}
-                for j in range(f.N)
-            ],
         }
