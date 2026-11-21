@@ -1,0 +1,4 @@
+# El núcleo del simplex usa solo fracciones de Python. Estas librerías se instalan
+# para trabajo matemático adicional y main.py las verifica al arrancar.
+numpy
+sympy
